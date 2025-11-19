@@ -11,6 +11,10 @@ import {
 } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 
+function getTodayISO() {
+  return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+}
+
 export default function ExpenseScreen() {
   const db = useSQLiteContext();
 
@@ -18,16 +22,17 @@ export default function ExpenseScreen() {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [note, setNote] = useState('');
+  const [date, setDate] = useState(getTodayISO());
 
-  // Step 6 – loadExpenses: Reading rows from SQLite
+  // Load all expenses from SQLite
   const loadExpenses = async () => {
     const rows = await db.getAllAsync(
-      'SELECT * FROM expenses ORDER BY id DESC;'
+      'SELECT * FROM expenses ORDER BY date DESC, id DESC;'
     );
     setExpenses(rows);
   };
 
-  // Step 7 – addExpense: Inserting a new row
+  // Add expense
   const addExpense = async () => {
     const amountNumber = parseFloat(amount);
 
@@ -37,30 +42,32 @@ export default function ExpenseScreen() {
 
     const trimmedCategory = category.trim();
     const trimmedNote = note.trim();
+    const trimmedDate = date.trim();
 
-    if (!trimmedCategory) {
+    if (!trimmedCategory || !trimmedDate) {
       return;
     }
 
     await db.runAsync(
-      'INSERT INTO expenses (amount, category, note) VALUES (?, ?, ?);',
-      [amountNumber, trimmedCategory, trimmedNote || null]
+      'INSERT INTO expenses (amount, category, note, date) VALUES (?, ?, ?, ?);',
+      [amountNumber, trimmedCategory, trimmedNote || null, trimmedDate]
     );
 
     setAmount('');
     setCategory('');
     setNote('');
+    setDate(getTodayISO());
 
     loadExpenses();
   };
 
-  // Step 8 – deleteExpense: Deleting a row
+  // Delete expense
   const deleteExpense = async (id) => {
     await db.runAsync('DELETE FROM expenses WHERE id = ?;', [id]);
     loadExpenses();
   };
 
-  // Step 9 – renderExpense UI
+  // Render a single expense row
   const renderExpense = ({ item }) => (
     <View style={styles.expenseRow}>
       <View style={{ flex: 1 }}>
@@ -68,6 +75,7 @@ export default function ExpenseScreen() {
           ${Number(item.amount).toFixed(2)}
         </Text>
         <Text style={styles.expenseCategory}>{item.category}</Text>
+        <Text style={styles.expenseDate}>{item.date}</Text>
         {item.note ? <Text style={styles.expenseNote}>{item.note}</Text> : null}
       </View>
 
@@ -77,7 +85,7 @@ export default function ExpenseScreen() {
     </View>
   );
 
-  // Step 10 – Create table + load initial data
+  // Create table and load initial data
   useEffect(() => {
     async function setup() {
       await db.execAsync(`
@@ -85,7 +93,8 @@ export default function ExpenseScreen() {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           amount REAL NOT NULL,
           category TEXT NOT NULL,
-          note TEXT
+          note TEXT,
+          date TEXT NOT NULL
         );
       `);
 
@@ -95,7 +104,6 @@ export default function ExpenseScreen() {
     setup();
   }, []);
 
-  // Step 11 – return JSX UI
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.heading}>Student Expense Tracker</Text>
@@ -123,6 +131,13 @@ export default function ExpenseScreen() {
           value={note}
           onChangeText={setNote}
         />
+        <TextInput
+          style={styles.input}
+          placeholder="Date (YYYY-MM-DD)"
+          placeholderTextColor="#9ca3af"
+          value={date}
+          onChangeText={setDate}
+        />
         <Button title="Add Expense" onPress={addExpense} />
       </View>
 
@@ -136,13 +151,12 @@ export default function ExpenseScreen() {
       />
 
       <Text style={styles.footer}>
-        Enter your expenses and they’ll be saved locally with SQLite.
+        Your expenses are saved locally with SQLite.
       </Text>
     </SafeAreaView>
   );
 }
 
-// Step 12 – styles
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#111827' },
   heading: {
@@ -179,6 +193,10 @@ const styles = StyleSheet.create({
   expenseCategory: {
     fontSize: 14,
     color: '#e5e7eb',
+  },
+  expenseDate: {
+    fontSize: 12,
+    color: '#9ca3af',
   },
   expenseNote: {
     fontSize: 12,
