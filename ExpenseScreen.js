@@ -15,6 +15,43 @@ function getTodayISO() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 }
 
+const FILTERS = {
+  ALL: 'ALL',
+  WEEK: 'WEEK',
+  MONTH: 'MONTH',
+};
+
+function isThisMonth(dateString) {
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return false;
+
+  const now = new Date();
+  return (
+    d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth()
+  );
+}
+
+function isThisWeek(dateString) {
+  const d = new Date(dateString);
+  if (isNaN(d.getTime())) return false;
+
+  const now = new Date();
+  // Start of week (Sunday)
+  const startOfWeek = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - now.getDay()
+  );
+  const endOfWeek = new Date(
+    startOfWeek.getFullYear(),
+    startOfWeek.getMonth(),
+    startOfWeek.getDate() + 7
+  );
+
+  return d >= startOfWeek && d < endOfWeek;
+}
+
 export default function ExpenseScreen() {
   const db = useSQLiteContext();
 
@@ -23,6 +60,7 @@ export default function ExpenseScreen() {
   const [category, setCategory] = useState('');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(getTodayISO());
+  const [filter, setFilter] = useState(FILTERS.ALL);
 
   // Load all expenses from SQLite
   const loadExpenses = async () => {
@@ -32,7 +70,7 @@ export default function ExpenseScreen() {
     setExpenses(rows);
   };
 
-  // Add expense
+  // Add expense (INSERT)
   const addExpense = async () => {
     const amountNumber = parseFloat(amount);
 
@@ -61,7 +99,7 @@ export default function ExpenseScreen() {
     loadExpenses();
   };
 
-  // Delete expense
+  // Delete expense (DELETE)
   const deleteExpense = async (id) => {
     await db.runAsync('DELETE FROM expenses WHERE id = ?;', [id]);
     loadExpenses();
@@ -104,10 +142,79 @@ export default function ExpenseScreen() {
     setup();
   }, []);
 
+  // Apply filter in JS
+  const filteredExpenses = expenses.filter((exp) => {
+    if (filter === FILTERS.ALL) {
+      return true;
+    }
+    if (filter === FILTERS.WEEK) {
+      return isThisWeek(exp.date);
+    }
+    if (filter === FILTERS.MONTH) {
+      return isThisMonth(exp.date);
+    }
+    return true;
+  });
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.heading}>Student Expense Tracker</Text>
 
+      {/* Filter buttons */}
+      <View style={styles.filterRow}>
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === FILTERS.ALL && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter(FILTERS.ALL)}
+        >
+          <Text
+            style={[
+              styles.filterText,
+              filter === FILTERS.ALL && styles.filterTextActive,
+            ]}
+          >
+            All
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === FILTERS.WEEK && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter(FILTERS.WEEK)}
+        >
+          <Text
+            style={[
+              styles.filterText,
+              filter === FILTERS.WEEK && styles.filterTextActive,
+            ]}
+          >
+            This Week
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === FILTERS.MONTH && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter(FILTERS.MONTH)}
+        >
+          <Text
+            style={[
+              styles.filterText,
+              filter === FILTERS.MONTH && styles.filterTextActive,
+            ]}
+          >
+            This Month
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Add form */}
       <View style={styles.form}>
         <TextInput
           style={styles.input}
@@ -141,8 +248,9 @@ export default function ExpenseScreen() {
         <Button title="Add Expense" onPress={addExpense} />
       </View>
 
+      {/* Filtered list */}
       <FlatList
-        data={expenses}
+        data={filteredExpenses}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderExpense}
         ListEmptyComponent={
@@ -217,5 +325,32 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 12,
     fontSize: 12,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 8,
+  },
+  filterButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#374151',
+    alignItems: 'center',
+    backgroundColor: '#020617',
+  },
+  filterButtonActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  filterText: {
+    color: '#e5e7eb',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  filterTextActive: {
+    color: '#f9fafb',
+    fontWeight: '700',
   },
 });
