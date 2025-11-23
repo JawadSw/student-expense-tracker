@@ -156,6 +156,29 @@ export default function ExpenseScreen() {
     return true;
   });
 
+  // Totals for current filter
+  const overallTotal = filteredExpenses.reduce(
+    (sum, exp) => sum + Number(exp.amount || 0),
+    0
+  );
+
+  const categoryTotals = {};
+  for (const exp of filteredExpenses) {
+    const key = exp.category || 'Other';
+    const amt = Number(exp.amount || 0);
+    if (!categoryTotals[key]) {
+      categoryTotals[key] = 0;
+    }
+    categoryTotals[key] += amt;
+  }
+
+  const filterLabel =
+    filter === FILTERS.ALL
+      ? 'All'
+      : filter === FILTERS.WEEK
+      ? 'This Week'
+      : 'This Month';
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.heading}>Student Expense Tracker</Text>
@@ -212,6 +235,35 @@ export default function ExpenseScreen() {
             This Month
           </Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Overall total */}
+      <View style={styles.totalCard}>
+        <Text style={styles.totalTitle}>
+          Total Spending ({filterLabel})
+        </Text>
+        <Text style={styles.totalAmount}>
+          ${overallTotal.toFixed(2)}
+        </Text>
+      </View>
+
+      {/* Category totals */}
+      <View style={styles.categoryCard}>
+        <Text style={styles.categoryTitle}>
+          By Category ({filterLabel})
+        </Text>
+        {Object.keys(categoryTotals).length === 0 ? (
+          <Text style={styles.empty}>No expenses for this filter.</Text>
+        ) : (
+          Object.entries(categoryTotals).map(([cat, total]) => (
+            <View key={cat} style={styles.categoryRow}>
+              <Text style={styles.categoryName}>{cat}</Text>
+              <Text style={styles.categoryAmount}>
+                ${total.toFixed(2)}
+              </Text>
+            </View>
+          ))
+        )}
       </View>
 
       {/* Add form */}
@@ -317,7 +369,7 @@ const styles = StyleSheet.create({
   },
   empty: {
     color: '#9ca3af',
-    marginTop: 24,
+    marginTop: 8,
     textAlign: 'center',
   },
   footer: {
@@ -328,7 +380,7 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: 12,
     gap: 8,
   },
   filterButton: {
@@ -352,5 +404,51 @@ const styles = StyleSheet.create({
   filterTextActive: {
     color: '#f9fafb',
     fontWeight: '700',
+  },
+  totalCard: {
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#020617',
+    borderWidth: 1,
+    borderColor: '#1f2937',
+  },
+  totalTitle: {
+    color: '#e5e7eb',
+    fontSize: 14,
+    marginBottom: 4,
+  },
+  totalAmount: {
+    color: '#fbbf24',
+    fontSize: 22,
+    fontWeight: '700',
+  },
+  categoryCard: {
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#020617',
+    borderWidth: 1,
+    borderColor: '#1f2937',
+  },
+  categoryTitle: {
+    color: '#e5e7eb',
+    fontSize: 14,
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  categoryName: {
+    color: '#e5e7eb',
+    fontSize: 13,
+  },
+  categoryAmount: {
+    color: '#fbbf24',
+    fontSize: 13,
+    fontWeight: '600',
   },
 });
