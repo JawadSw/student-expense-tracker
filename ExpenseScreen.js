@@ -10,6 +10,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
+import CategoryChart from './CategoryChart';
 
 function getTodayISO() {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -89,10 +90,7 @@ export default function ExpenseScreen() {
     loadExpenses();
   };
 
- 
   // EDIT MODE LOGIC
- 
-
   const startEditing = (item) => {
     setEditingId(item.id);
     setAmount(String(item.amount));
@@ -190,117 +188,137 @@ export default function ExpenseScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.heading}>Student Expense Tracker</Text>
-
-      {/* FILTERS */}
-      <View style={styles.filterRow}>
-        {Object.values(FILTERS).map((f) => (
-          <TouchableOpacity
-            key={f}
-            onPress={() => setFilter(f)}
-            style={[
-              styles.filterButton,
-              filter === f && styles.filterButtonActive,
-            ]}
-          >
-            <Text
-              style={[
-                styles.filterText,
-                filter === f && styles.filterTextActive,
-              ]}
-            >
-              {f === 'ALL' ? 'All' : f === 'WEEK' ? 'This Week' : 'This Month'}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* TOTALS */}
-      <View style={styles.totalCard}>
-        <Text style={styles.totalTitle}>
-          Total Spending ({filterLabel})
-        </Text>
-        <Text style={styles.totalAmount}>
-          ${overallTotal.toFixed(2)}
-        </Text>
-      </View>
-
-      <View style={styles.categoryCard}>
-        <Text style={styles.categoryTitle}>
-          By Category ({filterLabel})
-        </Text>
-        {Object.keys(categoryTotals).length === 0 ? (
-          <Text style={styles.empty}>No expenses for this filter.</Text>
-        ) : (
-          Object.entries(categoryTotals).map(([cat, total]) => (
-            <View key={cat} style={styles.categoryRow}>
-              <Text style={styles.categoryName}>{cat}</Text>
-              <Text style={styles.categoryAmount}>
-                ${total.toFixed(2)}
-              </Text>
-            </View>
-          ))
-        )}
-      </View>
-
-      {/* FORM (ADD OR EDIT) */}
-      <View style={styles.form}>
-        <TextInput
-          style={styles.input}
-          placeholder="Amount"
-          placeholderTextColor="#9ca3af"
-          keyboardType="numeric"
-          value={amount}
-          onChangeText={setAmount}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Category"
-          placeholderTextColor="#9ca3af"
-          value={category}
-          onChangeText={setCategory}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Note (optional)"
-          placeholderTextColor="#9ca3af"
-          value={note}
-          onChangeText={setNote}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="YYYY-MM-DD"
-          placeholderTextColor="#9ca3af"
-          value={date}
-          onChangeText={setDate}
-        />
-
-        {editingId ? (
-          <>
-            <Button title="Save Changes" onPress={saveEdit} />
-            <View style={{ height: 8 }} />
-            <Button title="Cancel Edit" color="#6b7280" onPress={clearForm} />
-          </>
-        ) : (
-          <Button title="Add Expense" onPress={addExpense} />
-        )}
-      </View>
-
       <FlatList
         data={filteredExpenses}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderExpense}
+        ListHeaderComponent={
+          <>
+            <Text style={styles.heading}>Student Expense Tracker</Text>
+
+            {/* FILTERS */}
+            <View style={styles.filterRow}>
+              {Object.values(FILTERS).map((f) => (
+                <TouchableOpacity
+                  key={f}
+                  onPress={() => setFilter(f)}
+                  style={[
+                    styles.filterButton,
+                    filter === f && styles.filterButtonActive,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.filterText,
+                      filter === f && styles.filterTextActive,
+                    ]}
+                  >
+                    {f === 'ALL'
+                      ? 'All'
+                      : f === 'WEEK'
+                      ? 'This Week'
+                      : 'This Month'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* TOTALS */}
+            <View style={styles.totalCard}>
+              <Text style={styles.totalTitle}>
+                Total Spending ({filterLabel})
+              </Text>
+              <Text style={styles.totalAmount}>
+                ${overallTotal.toFixed(2)}
+              </Text>
+            </View>
+
+            {/* CATEGORY SUMMARY LIST */}
+            <View style={styles.categoryCard}>
+              <Text style={styles.categoryTitle}>
+                By Category ({filterLabel})
+              </Text>
+              {Object.keys(categoryTotals).length === 0 ? (
+                <Text style={styles.empty}>No expenses for this filter.</Text>
+              ) : (
+                Object.entries(categoryTotals).map(([cat, total]) => (
+                  <View key={cat} style={styles.categoryRow}>
+                    <Text style={styles.categoryName}>{cat}</Text>
+                    <Text style={styles.categoryAmount}>
+                      ${total.toFixed(2)}
+                    </Text>
+                  </View>
+                ))
+              )}
+            </View>
+
+            {/* CHART */}
+            <CategoryChart
+              categoryTotals={categoryTotals}
+              filterLabel={filterLabel}
+            />
+
+            {/* FORM (ADD OR EDIT) */}
+            <View style={styles.form}>
+              <TextInput
+                style={styles.input}
+                placeholder="Amount"
+                placeholderTextColor="#9ca3af"
+                keyboardType="numeric"
+                value={amount}
+                onChangeText={setAmount}
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="Category"
+                placeholderTextColor="#9ca3af"
+                value={category}
+                onChangeText={setCategory}
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="Note (optional)"
+                placeholderTextColor="#9ca3af"
+                value={note}
+                onChangeText={setNote}
+              />
+
+              <TextInput
+                style={styles.input}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="#9ca3af"
+                value={date}
+                onChangeText={setDate}
+              />
+
+              {editingId ? (
+                <>
+                  <Button title="Save Changes" onPress={saveEdit} />
+                  <View style={{ height: 8 }} />
+                  <Button
+                    title="Cancel Edit"
+                    color="#6b7280"
+                    onPress={clearForm}
+                  />
+                </>
+              ) : (
+                <Button title="Add Expense" onPress={addExpense} />
+              )}
+            </View>
+          </>
+        }
         ListEmptyComponent={
           <Text style={styles.empty}>No expenses yet.</Text>
         }
+        ListFooterComponent={
+          <Text style={styles.footer}>
+            Tap any expense to edit it — stored locally with SQLite.
+          </Text>
+        }
+        contentContainerStyle={{ paddingBottom: 24 }}
       />
-
-      <Text style={styles.footer}>
-        Tap any expense to edit it — stored locally with SQLite.
-      </Text>
     </SafeAreaView>
   );
 }
